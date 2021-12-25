@@ -1,0 +1,1085 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>Portal Teknologi</title>
+    <link href="https://teknomid.online/feed.xml" rel="self" />
+    <link href="https://teknomid.online" />
+    <updated>2021-12-26T01:19:56+07:00</updated>
+    <author>
+        <name>Teknomid</name>
+    </author>
+    <id>https://teknomid.online</id>
+
+    <entry>
+        <title>Cara Install Prometheus di Linux Ubuntu</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/cara-install-prometheus-di-linux-ubuntu/"/>
+        <id>https://teknomid.online/cara-install-prometheus-di-linux-ubuntu/</id>
+            <category term="TUTORIAL"/>
+            <category term="LINUX"/>
+            <category term="CLOUD"/>
+
+        <updated>2021-12-26T00:54:16+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/194/prometheus-696x279.webp" alt="Cara Install Prometheus di Linux Ubuntu" />
+                     Prometheus adalah sebuah sistem Monitoring opensource yang powerfull dimana tugasnya mengumpulkan metrik dari services&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/194/prometheus-696x279.webp" alt="Cara Install Prometheus di Linux Ubuntu" />
+                <p><!-- wp:heading --></p>
+<h2>Pengantar</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p><a href="https://prometheus.io/" target="_blank" rel="noreferrer noopener">Prometheus </a>adalah sebuah sistem Monitoring opensource yang powerfull dimana tugasnya mengumpulkan metrik dari services dan menyimpannya dalam database time-series. Ini menawarkan model data multi-dimensi, bahasa kueri yang fleksibel, dan kemungkinan visualisasi yang beragam melalui applikasi web seperti Grafana.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Secara default, Prometheus hanya mengekspor metrik tentang dirinya sendiri (misalnya jumlah permintaan yang diterima, konsumsi memorinya, dll.). Namun, Anda dapat memperluas Prometheus dengan menginstal exporters, program opsional yang menghasilkan metrik tambahan.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Exporters - baik yang official yang dikelola oleh tim Prometheus maupun yang dikontribusikan oleh komunitas - memberikan informasi tentang segala hal mulai dari infrastruktur, database, dan server web hingga sistem messanging, API, dan banyak lagi.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading --></p>
+<h2>Beberapa pilihan yang paling populer meliputi:</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:list --></p>
+<ul>
+<li><a href="https://prometheus.io/download/#node_exporter" target="_blank" rel="noreferrer noopener">node_exporter</a> - Ini menghasilkan metrik tentang infrastruktur, termasuk CPU saat ini, penggunaan memori dan disk, serta statistik I/O dan jaringan, seperti jumlah byte yang dibaca dari disk atau beban rata-rata server.</li>
+<li><a href="https://prometheus.io/download/#blackbox_exporter" target="_blank" rel="noreferrer noopener">blackbox_exporter</a> - Ini menghasilkan metrik yang berasal dari protokol pemeriksaan seperti HTTP dan HTTPS untuk menentukan ketersediaan titik akhir, waktu respons, dan banyak lagi.</li>
+<li><a href="https://prometheus.io/download/#mysqld_exporter" target="_blank" rel="noreferrer noopener">mysqld_exporter</a> - Ini mengumpulkan metrik yang terkait dengan server MySQL, seperti jumlah kueri yang dieksekusi, waktu respons kueri rata-rata, dan status replikasi cluster.</li>
+<li>rabbitmq_exporter - Ini menampilkan metrik tentang sistem pesan RabbitMQ, termasuk jumlah pesan yang diterbitkan, jumlah pesan yang siap dikirim, dan ukuran semua pesan dalam antrian.</li>
+<li>nginx-vts-exporter - Ini menyediakan metrik tentang server web Nginx menggunakan modul Nginx VTS, termasuk jumlah koneksi terbuka, jumlah respons yang dikirim (dikelompokkan berdasarkan kode respons), dan ukuran total permintaan yang dikirim atau diterima dalam byte .</li>
+</ul>
+<p><!-- /wp:list --></p>
+<p><!-- wp:paragraph --></p>
+<p>Lebih lengkapnya bisa di lihat dari <a href="https://prometheus.io/docs/instrumenting/exporters/" target="_blank" rel="noreferrer noopener">Prometheus</a>.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading --></p>
+<h2>Step 1 — Membuat User Service</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Untuk tujuan keamanan, kita akan mulai dengan membuat dua Account User baru, prometheus dan node_exporter. Kita akan menggunakan akun ini sepanjang tutorial untuk mengisolasi Ownership pada file dan direktori Core Prometheus.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Create dua user ini, dan gunakan opsi <strong>--no-create-home </strong>dan <strong>--shell /bin/false</strong> sehingga User ini tidak dapat Login ke server dan tugasnya hanya untuk service-service yang di peuntukkan saja.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo useradd --no-create-home --shell /bin/false prometheus <br>sudo useradd --no-create-home --shell /bin/false node_exporter</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sebelum kita mengunduh binari Prometheus, buat direktori yang diperlukan untuk menyimpan file dan data Prometheus. Mengikuti konvensi standar Linux, kita akan membuat direktori di <strong>/etc</strong> untuk file konfigurasi Prometheus dan direktori di <strong>/var/lib</strong> untuk datanya.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo mkdir /etc/prometheus <br>sudo mkdir /var/lib/prometheus</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sekarang, atur ownership user dan grup pada direktori baru ke user prometheus.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo chown prometheus:prometheus /etc/prometheus <br>sudo chown prometheus:prometheus /var/lib/prometheus</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:heading --></p>
+<h2>Step 2 — Downloading Prometheus</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Setelah membuat ownership pada directory, kita sekarang dapat mengunduh Prometheus dan kemudian membuat file konfigurasi minimal untuk menjalankan Prometheus untuk pertama kalinya.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">cd ~ <br><br>curl -LO https://github.com/prometheus/prometheus/releases/download/v2.32.0/prometheus-2.32.0.linux-amd64.tar.gz</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Selanjutnya, gunakan perintah sha256sum untuk menghasilkan checksum dari file yang diunduh:</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sha256sum prometheus-2.32.0.linux-amd64.tar.gzz</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Bandingkan output dari perintah ini dengan checksum pada halaman unduhan Prometheus untuk memastikan bahwa file Anda asli dan tidak rusak.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">Output:<br><br>e12917b25b32980daee0e9cf879d9ec197e2893924bd1574604eb0f550034d46 rometheus-2.32.0.linux-amd64.tar.gz</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Jika checksum tidak cocok, hapus file yang diunduh dan ulangi langkah sebelumnya untuk mengunduh ulang file.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sekarang, buka paket arsip yang diunduh.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">tar xvf rometheus-2.32.0.linux-amd64.tar.gz</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Ini akan membuat direktori bernama rometheus-2.32.0.linux-amd64 yang berisi dua file biner (prometheus dan promtool), direktori consoles dan console_libraries yang berisi file antarmuka web, lisensi, pemberitahuan, dan beberapa file contoh.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Salin dua binari ke direktori <strong>/usr/local/bin.</strong></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo cp rometheus-2.32.0.linux-amd64/prometheus /usr/local/bin/<br>sudo cp rometheus-2.32.0.linux-amd64/promtool /usr/local/bin/</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Tetapkan Ownership user dan grup pada binari ke user <strong>prometheus</strong> yang dibuat pada Step 1.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo chown prometheus:prometheus /usr/local/bin/prometheus <br>sudo chown prometheus:prometheus /usr/local/bin/promtool</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Tetapkan user and group ownership pada direktori ke user prometheus. Menggunakan flag -R akan memastikan bahwa ownership juga diatur pada file di dalam direktori.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo chown -R prometheus:prometheus /etc/prometheus/consoles <br>sudo chown -R prometheus:prometheus /etc/prometheus/console_libraries</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Terakhir, hapus file hasil unduhan di home atau tempat unduhan Anda, karena tidak lagi diperlukan.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">rm -rf prometheus-2.32.0.linux-amd64.tar.gz prometheus-2.32.0.linux-amd64</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sekarang setelah Prometheus terinstal, kita akan membuat file konfigurasi dan service sebagai persiapan untuk menjalankannya pertama kalinya.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading --></p>
+<h2>Step 3 — Configuring Prometheus</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Di direktori /etc/prometheus, gunakan nano atau editor teks favorit Anda untuk membuat file konfigurasi bernama prometheus.yml. Untuk saat ini, file ini hanya berisi informasi yang cukup untuk menjalankan Prometheus untuk pertama kalinya.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo nano /etc/prometheus/prometheus.yml<br><br><strong>Peringatan: </strong>File konfigurasi Prometheus menggunakan format YAML, yang secara ketat melarang tab dan membutuhkan dua spasi untuk indentasi. Prometheus akan gagal untuk menjalankan service jika file konfigurasi tidak sesuai dengan format YAML</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Dalam pengaturan global, tentukan interval default untuk metrik scraping. Perhatikan bahwa Prometheus akan menerapkan pengaturan ini ke setiap exporter kecuali pengaturan masing-masing exporter sendiri.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;"><strong>Prometheus config file - /etc/prometheus/prometheus.yml</strong><br>global: <br>   scrape_interval: 15s<br><br>scrape_configs:<br>  - job_name: 'prometheus'<br>  scrape_interval: 5s<br>  static_configs:<br>   - targets: ['localhost:9090']</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Simpan file dan keluar dari editor teks Anda.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sekarang, atur user and group ownership pada file konfigurasi ke user <strong>prometheus</strong> yang dibuat pada Step 1.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo chown prometheus:prometheus /etc/prometheus/prometheus.yml</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:heading --></p>
+<h2>Step 4 — Running Prometheus</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Mulai Prometheus dengan user prometheus, menyediakan jalur ke file konfigurasi dan direktori data.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo -u prometheus /usr/local/bin/prometheus \ <br>--config.file /etc/prometheus/prometheus.yml \ <br>--storage.tsdb.path /var/lib/prometheus/ \ <br>--web.console.templates=/etc/prometheus/consoles \ <br>--web.console.libraries=/etc/prometheus/console_libraries</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Output berisi informasi tentang Loading Progress Prometheus, file konfigurasi, dan service terkait. Itu juga menegaskan bahwa Prometheus Listen pada port 9090.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">Output<br>level=info ts=2017-11-17T18:37:27.474530094Z caller=main.go:215 msg="Starting Prometheus" version="(version=2.0.0, branch=HEAD, re vision=0a74f98628a0463dddc90528220c94de5032d1a0)" <br>level=info ts=2017-11-17T18:37:27.474758404Z caller=main.go:216 build_context="(go=go1.9.2, user=root@615b82cb36b6, date=20171108- 07:11:59)" <br>level=info ts=2017-11-17T18:37:27.474883982Z caller=main.go:217 host_details="(Linux 4.4.0-98-generic #121-Ubuntu SMP Tue Oct 10 1 4:24:03 UTC 2017 x86_64 prometheus-update (none))" <br>level=info ts=2017-11-17T18:37:27.483661837Z caller=web.go:380 component=web msg="Start listening for connections" address=0.0.0.0 :9090 <br>level=info ts=2017-11-17T18:37:27.489730138Z caller=main.go:314 msg="Starting TSDB" <br>level=info ts=2017-11-17T18:37:27.516050288Z caller=targetmanager.go:71 component="target manager" msg="Starting target manager... " <br>level=info ts=2017-11-17T18:37:27.537629169Z caller=main.go:326 msg="TSDB started"<br>level=info ts=2017-11-17T18:37:27.537896721Z caller=main.go:394 msg="Loading configuration file" filename=/etc/prometheus/promethe us.yml<br>level=info ts=2017-11-17T18:37:27.53890004Z caller=main.go:371 msg="Server is ready to receive requests."</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Jika Anda mendapatkan pesan error, periksa kembali apakah Anda telah menggunakan sintaks YAML di file konfigurasi Anda, lalu ikuti petunjuk di layar untuk menyelesaikan masalah.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sekarang, hentikan Prometheus dengan menekan <strong>CTRL+C</strong>, lalu create file service systemd baru.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo nano /etc/systemd/system/prometheus.service</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>File service memberi tahu systemd untuk menjalankan Prometheus sebagai pengguna prometheus, dengan file konfigurasi terletak di direktori <strong>/etc/prometheus/prometheus.yml</strong> dan untuk menyimpan datanya di direktori <strong>/var/lib/prometheus</strong>. (Rincian file service systemd berada di luar cakupan tutorial ini, tetapi Anda dapat mempelajari lebih lanjut di Memahami Unit Systemd dan File Unit.)</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Salin konten berikut ke dalam file: <strong>/etc/systemd/system/prometheus.service</strong></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">[Unit]<br>Description=Prometheus<br>Wants=network-online.target<br>After=network-online.target<br>
+<p>[Service]<br>User=prometheus<br>Group=prometheus<br>Type=simple<br>ExecStart=/usr/local/bin/prometheus \<br>--config.file /etc/prometheus/prometheus.yml \<br>--storage.tsdb.path /var/lib/prometheus/ \<br>--web.console.templates=/etc/prometheus/consoles \<br>--web.console.libraries=/etc/prometheus/console_libraries<br><br>[Install]<br>WantedBy=multi-user.target</p>
+</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Finally, save file dan close text editor Anda.<br>Untuk menggunakan service yang baru dibuat, reload <strong>systemd.</strong></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo systemctl daemon-reload</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Anda sekarang bisa Menjalankan service Prometheus menggunakan perintah berikut:</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo systemctl start prometheus<br>sudo systemctl status prometheus</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Outputnya memberi tahu Anda status Prometheus, pengidentifikasi proses utama (PID), penggunaan memori, dan banyak lagi.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;"><a href="https://teknomid.com/applikasi-design-gratis/" target="_blank" rel="noopener"><strong>Baca Juga : Aplikasi Design di Linux dan Windows Open Source</strong></a></div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Jika status layanan tidak aktif, ikuti petunjuk di layar dan telusuri kembali langkah-langkah sebelumnya untuk menyelesaikan masalah sebelum melanjutkan tutorial.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">Output<br>● prometheus.service - Prometheus<br>Loaded: loaded (/etc/systemd/system/prometheus.service; disabled; vendor preset: enabled)<br>Active: active (running) since Fri 2017-07-21 11:40:40 UTC; 3s ago Main PID: 2104 (prometheus)<br>Tasks: 7<br>Memory: 13.8M<br>CPU: 470ms<br>CGroup: /system.slice/prometheus.service<br>...</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Saat Anda siap untuk melanjutkan, tekan Q untuk keluar dari perintah status.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Terakhir, aktifkan service prometheus auto start up saat system booting.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo systemctl enable prometheus</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sekarang setelah Prometheus aktif dan berjalan, kita dapat menginstal exporter tambahan untuk menghasilkan metrik tentang resource server kita.</p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Increase C Drive Space dengan Disk Management Windows 11</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/increase-c-drive-space-dengan-disk-management-windows-11/"/>
+        <id>https://teknomid.online/increase-c-drive-space-dengan-disk-management-windows-11/</id>
+            <category term="WINDOWS"/>
+            <category term="TUTORIAL"/>
+
+        <updated>2021-12-26T00:50:25+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/192/01.webp" alt="Increase C Drive Space dengan Disk Management Windows 11" />
+                     Windows 11 adalah nama yang diberikan untuk sistem operasi terbaru Microsoft, yang menggabungkan kekuatan&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/192/01.webp" alt="Increase C Drive Space dengan Disk Management Windows 11" />
+                <p><!-- wp:heading --></p>
+<h2><em>Increase C Drive Space dengan Disk Management Windows 11</em></h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:heading --></p>
+<h2>Apa itu Windows 11 ?</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Windows 11 adalah nama yang diberikan untuk sistem operasi terbaru Microsoft, yang menggabungkan kekuatan Windows 10, menawarkan pendekatan jaringan-sentris untuk PC dan perangkat mulai dari Tablet hingga Data Center. Alih-alih mengikuti dengan revisi tambahan lainnya - Microsoft telah datang dengan sesuatu yang sama sekali berbeda yang diharapkan akan menarik bagi pengguna PC.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Windows 11, iterasi terbaru dari sistem operasi desktop, berfokus pada kesederhanaan, kecepatan, dan keamanan, dengan tampilan baru untuk aplikasi dan ikon. Tim desain Microsoft sekali lagi memulai perombakan total terhadap pengalaman pengguna Windows. Misalnya, gertakan jendela—kemampuan untuk menyeret jendela dari sisi mana pun layar hingga menempel di sana—telah ditingkatkan untuk membuat pemindahan dua jendela bersebelahan menjadi lebih mudah.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading --></p>
+<h2>Mengapa Anda Perlu Menambah Ruang Drive C</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Hard drive internal komputer adalah perangkat penyimpanan yang dapat menyediakan banyak ruang untuk data penting Anda. Hard disk yang menghabiskan sebagian besar penyimpanan di mesin Anda biasanya adalah drive C. Jika Anda telah menggunakan komputer selama beberapa hari/minggu/bulan terakhir, tidak diragukan lagi ada kebutuhan untuk menambah ruang drive C karena Anda telah menggunakan semua ruang yang tersedia. Selain itu, jika Anda ingin menginstal aplikasi atau game baru di komputer Anda, mungkin ada persyaratan untuk ruang drive C tambahan.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading --></p>
+<h2>1) Masalah ruang disk drive C rendah:</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Untuk menjalankan PC Windows 11 Anda dengan lancar - harus ada cukup ruang tersisa di drive C komputer Anda. Dengan kata lain, telah dikatakan bahwa "drive C adalah jantung dari sebuah PC." Namun seiring berkembangnya waktu, kemungkinan besar kita akan menginstal lebih banyak program dan data pada drive C sehingga mungkin tidak ada cukup ruang tersisa di dalamnya.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Apa yang terjadi ketika drive C kehabisan ruang disk? Ini akan menjadi bencana bagi sistem komputer. Lalu, bagaimana kita bisa menghadapinya? Nah, pertimbangan pertama harus memperluas penyimpanan hard disk, sedangkan yang kedua harus mengoptimalkan sistem komputer dan menghapus file dan folder yang tidak diinginkan pada drive C.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading --></p>
+<h2>2) Masalah kinerja Windows yang lambat:</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Ketika komputer Anda mengalami penggunaan penyimpanan yang berat, hard drive akan mulai terfragmentasi, yang membuat kecepatan berjalan OS Windows dan kinerja komputer Anda terseret. Penurunan kecepatan sangat bertahap dan tidak terlihat pada awalnya. Namun, seiring berjalannya waktu, hal itu juga akan mempengaruhi aktivitas PC Anda sehari-hari. Dan terkadang, Anda mungkin menemukan bahwa komputer Anda membeku selama satu atau dua detik.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Performa komputer yang lambat memang menyebalkan. Bagaimana cara melewati masalah ini? Jadi, bagaimana dengan mengosongkan ruang di drive lokal? Dimungkinkan untuk memperluas ruang volume pada drive C menggunakan ruang disk kosong, yang sulit dilakukan oleh pengguna biasa tanpa bantuan alat ekstensi partisi profesional. Dia</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Salah satu cara mudah untuk menambah ruang kosong drive C Anda adalah dengan memperluas ruang drive menggunakan program EaseUS Partition Master. Meskipun alat manajemen disk Windows 11 bawaan untuk memperluas ruang drive C cukup baik untuk pengguna berpengalaman tetapi memiliki kemampuan yang lebih sedikit. Manajemen disk mempersulit perluasan ruang drive jika tidak ada ruang yang tidak terisi di partisi. EaseUS Partition Master lebih mudah digunakan dan berguna dalam situasi ini.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Baca Juga: <a href="https://teknomid.com/windows-11/">Download Windows 11 Melalui Rufus</a></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading --></p>
+<h2>Cara Memperluas Drive C di Windows 11</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p><strong>#1. Jika Anda menemukan ruang yang tidak terisi pada drive Anda, ikuti langkah-langkah di bawah ini:</strong></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading --></p>
+<h2>Langkah 1.</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Tekan Tombol Windows + R dan maukkan diskmgmt.msc, tekan Enter.</p>
+<figure class="post__image post__image--center" ><img loading="lazy" src="https://teknomid.online/media/posts/192/open-disk-management-windows-11-box.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/192/responsive/open-disk-management-windows-11-box-xs.webp 300w ,https://teknomid.online/media/posts/192/responsive/open-disk-management-windows-11-box-sm.webp 480w ,https://teknomid.online/media/posts/192/responsive/open-disk-management-windows-11-box-md.webp 768w ,https://teknomid.online/media/posts/192/responsive/open-disk-management-windows-11-box-lg.webp 1024w ,https://teknomid.online/media/posts/192/responsive/open-disk-management-windows-11-box-xl.webp 1360w ,https://teknomid.online/media/posts/192/responsive/open-disk-management-windows-11-box-2xl.webp 1600w"  alt="diskmgmt.msc" width="589" height="350">
+<figcaption ><span style="color: #e67e23;"><em>diskmgmt.msc</em></span></figcaption>
+</figure>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4357,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:heading --></p>
+<h2>Langkah 2.</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Klik kanan pada drive disk C, dan klik "Extend Volume".</p>
+<figure class="post__image post__image--center" ><img loading="lazy" src="https://teknomid.online/media/posts/192/02.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/192/responsive/02-xs.webp 300w ,https://teknomid.online/media/posts/192/responsive/02-sm.webp 480w ,https://teknomid.online/media/posts/192/responsive/02-md.webp 768w ,https://teknomid.online/media/posts/192/responsive/02-lg.webp 1024w ,https://teknomid.online/media/posts/192/responsive/02-xl.webp 1360w ,https://teknomid.online/media/posts/192/responsive/02-2xl.webp 1600w"  alt="Extend Volume" width="700" height="327">
+<figcaption ><span style="color: #e67e23;"><em>Extend Volume</em></span></figcaption>
+</figure>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4358,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:heading --></p>
+<h2>Langkah 3.</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sekarang, pilih sejumlah disk di kolom Tersedia dan klik tambahkan untuk memilih disk untuk memperluas ruang drive C. Klik "Berikutnya" untuk melanjutkan.</p>
+<figure class="post__image post__image--center" ><img loading="lazy" src="https://teknomid.online/media/posts/192/03.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/192/responsive/03-xs.webp 300w ,https://teknomid.online/media/posts/192/responsive/03-sm.webp 480w ,https://teknomid.online/media/posts/192/responsive/03-md.webp 768w ,https://teknomid.online/media/posts/192/responsive/03-lg.webp 1024w ,https://teknomid.online/media/posts/192/responsive/03-xl.webp 1360w ,https://teknomid.online/media/posts/192/responsive/03-2xl.webp 1600w"  alt="Menambah space ruang drive C" width="700" height="394">
+<figcaption ><em><span style="color: #e67e23;">Menambah space ruang drive C</span></em></figcaption>
+</figure>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4359,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p><em>Baca Juga: <a href="https://teknomid.com/e-wallet-sebagai-pembayaran-digital-masa-depan/">e-Wallet Sebagai Pembayaran Digital Masa Depan</a></em></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading --></p>
+<h2>Langkah 4.</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Klik "Selesai" untuk menutup tools Manajemen Disk.</p>
+<figure class="post__image post__image--center"><img loading="lazy"  src="https://teknomid.online/media/posts/192/04.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/192/responsive/04-xs.webp 300w ,https://teknomid.online/media/posts/192/responsive/04-sm.webp 480w ,https://teknomid.online/media/posts/192/responsive/04-md.webp 768w ,https://teknomid.online/media/posts/192/responsive/04-lg.webp 1024w ,https://teknomid.online/media/posts/192/responsive/04-xl.webp 1360w ,https://teknomid.online/media/posts/192/responsive/04-2xl.webp 1600w"  alt="" width="658" height="395"></figure>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4360,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Tools Manajemen Disk sekarang telah berhasil meningkatkan Ruang Drive C di Windows 11.</p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>e-Wallet Sebagai Pembayaran Digital Masa Depan</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/e-wallet-sebagai-pembayaran-digital-masa-depan/"/>
+        <id>https://teknomid.online/e-wallet-sebagai-pembayaran-digital-masa-depan/</id>
+            <category term="TECH &amp;amp; GADGETS"/>
+
+        <updated>2021-12-26T00:41:33+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/193/e-Wallet-Sebagai-Pembayaran-Digital.webp" alt="e-Wallet Sebagai Pembayaran Digital" />
+                     e-Wallet Sebagai Pembayaran Digital Di tengah kekacauan, digitalisasi selalu menemukan jalan. Selama wabah COVID-19,&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/193/e-Wallet-Sebagai-Pembayaran-Digital.webp" alt="e-Wallet Sebagai Pembayaran Digital" />
+                <p><!-- wp:paragraph --></p>
+<p>e-Wallet Sebagai Pembayaran <br>Digital Di tengah kekacauan, digitalisasi selalu menemukan jalan. Selama wabah COVID-19, teknologi berkembang pesat. Dari tidak ada kontak fisik hingga transaksi digital, istilah tahun ini adalah tanpa kontak. Dompet digital telah sepenuhnya mengambil alih di era pascapandemi. Dengan merek besar dan bisnis eCommerce yang mempromosikan transaksi tanpa kontak, metode pembayaran ini telah mendapatkan popularitas di kalangan masyarakat umum. Terlebih lagi, sekarang bahkan perusahaan kecil pun menerima pembayaran digital, bepergian tanpa uang tunai menjadi lebih mudah dari sebelumnya.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Anehnya, ada lebih dari <strong>779 miliar</strong> transaksi digital di fintech secara global pada tahun 2020 dan angka ini diperkirakan akan meningkat pada tingkat tahunan <strong>13%</strong> di tahun-tahun berikutnya. Seiring kepercayaan dompet digital tumbuh dari hari ke hari, akan menarik untuk melihat seperti apa masa depan pembayaran.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3>1. <strong>Lebih Mengandalkan Cloud</strong></h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Setiap aspek digitalisasi bergantung pada cloud. Perusahaan cenderung mengintegrasikan lebih banyak dompet digital mereka dengan cloud, bahkan dalam aplikasi e-wallet di mana pembayaran yang terlambat dapat menimbulkan masalah bagi pengguna. Masalah keterlambatan pembayaran adalah salah satu masalah paling serius yang muncul dalam transaksi online. Penggunaan jaringan server yang jauh dapat membantu mengurangi hal ini.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3>2. <strong>Pembayaran Berbasis NFC (Near Field Communication) Untuk Mendapatkan Momentum</strong></h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Dalam beberapa tahun terakhir, kami telah melihat peningkatan transaksi di mana Anda dapat membayar dengan kartu Anda hanya dengan mengetuknya. NFC adalah dasar dari teknologi ini, yang akan mengalami pertumbuhan pesat di tahun-tahun mendatang. Karena NFC mengirimkan data terenkripsi ke perangkat POS dengan cepat. Ini jauh lebih maju daripada teknologi PIN standar. Menurut UK Finance, kartu nirsentuh berkemampuan NFC akan menyumbang <strong>36%</strong> dari semua pembayaran pada tahun 2027.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3>3. <strong>Pembayaran yang Diaktifkan dengan Suara Sedang Meningkat</strong></h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Teknologi berbasis suara seperti asisten virtual telah menjadi norma bagi banyak konsumen di negara maju dan berkembang, seiring dengan meningkatnya permintaan akan kenyamanan. Lebih banyak aplikasi dapat diintegrasikan dengan AI suara telepon, atau mungkin datang dengan kemampuan pembayaran suara mereka.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Pengalaman konsumen telah ditingkatkan ke tingkat yang belum pernah dicapai sebelumnya sebagai hasil dari inovasi ini. Banyak pengguna di seluruh dunia telah terbiasa dan mengandalkan perangkat ini untuk menyelesaikan tugas sehari-hari mereka. Menurut jajak pendapat, jumlah orang yang menggunakan asisten digital akan mencapai 1,8 miliar pada tahun 2021.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3>4. <strong>Otentikasi Biometrik Akan Menjadi Lebih Umum</strong></h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Meningkatnya penggunaan pembayaran digital secara otomatis menyebabkan peningkatan keselamatan dan keamanan mereka. Mengingat kemungkinan penipuan dan pencurian, otentikasi berbasis biometrik mungkin menjadi lebih umum dalam pembayaran digital tahun ini. Teknologi biometrik menggantikan kata sandi dengan teknik seperti pemindaian sidik jari, pengenalan wajah, analisis detak jantung, dan lain-lain yang unik untuk setiap pengguna. Menurut Biometric Update.com, penggunaan akan meningkat secara signifikan karena sekitar <strong>2,5 juta</strong> kartu pembayaran biometrik diharapkan akan diterbitkan tahun ini. Kenaikan di atas memastikan transaksi lebih aman dan efisien.</p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Google Cloud Segera Luncurkan Pembaruan Layanan Penyimpanan</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/google-cloud-segera-luncurkan-pembaruan-layanan-penyimpanan/"/>
+        <id>https://teknomid.online/google-cloud-segera-luncurkan-pembaruan-layanan-penyimpanan/</id>
+            <category term="GOOGLE"/>
+            <category term="CLOUD"/>
+
+        <updated>2021-12-26T00:53:13+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/190/google-cloud-696x470.webp" alt="Google Cloud segera luncurkan pembaruan" />
+                     Google Cloud segera luncurkan pembaruan untuk layanan penyimpanan cloud Drive. Layanan tersebut akan membantu&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/190/google-cloud-696x470.webp" alt="Google Cloud segera luncurkan pembaruan" />
+                <p><!-- wp:paragraph --></p>
+<p>Google Cloud segera luncurkan pembaruan untuk layanan penyimpanan cloud Drive. Layanan tersebut akan membantu meminimalkan kekacauan dan kebingungan yang disebabkan oleh file yang disimpan di beberapa lokasi sehingga lebih praktis.<br><br>Pada 2020, perusahaan meluncurkan sistem pintasan yang dirancang untuk menyederhanakan struktur file dan folder, dengan membuat pointer ke item, daripada memiliki item yang ada di beberapa lokasi. Dilansir dari Techradar, Kamis (9/12), sekarang, Google telah mengonfirmasi bahwa file multi-lokasi akan secara otomatis dimigrasikan ke pintasan, mulai awal tahun depan. <br><br>“Memperluas penggunaan pintasan akan meningkatkan konsistensi perilaku dan memudahkan pengguna untuk memahami bagaimana Drive mereka terstruktur,” tulis Google dalam pernyataan.<br><br>Sebagai akibat dari peralihan ke kerja jarak jauh selama pandemi, karyawan kini jauh lebih bergantung pada perangkat lunak produktivitas berbasis cloud (seperti Google Workspace) untuk berkolaborasi dengan rekan kerja dan organisasi mitra.<br><br>Namun, ini telah menyebabkan masuknya jumlah dokumen, spreadsheet, presentasi, dan aset lain yang dihosting di Google Drive, menciptakan berbagai masalah manajemen file dan navigasi. <br><br>Dengan pembaruan yang akan datang, Google berharap untuk menerapkan beberapa ukuran ketertiban pada kekacauan, yang hanya diperburuk oleh peluang file ada di banyak lokasi. <br><br>Menurut posting blog, administrator akan diberi tahu melalui email beberapa pekan sebelum migrasi ke pintasan dilakukan. Sebelum proses dimulai, admin akan dapat menentukan apakah pintasan diperkenalkan di semua skenario yang mungkin, atau hanya untuk konten yang dibagikan dalam domain perusahaan itu sendiri. <br><br>Sementara itu, pengguna Google Workspace akan diberikan spanduk peringatan tentang perubahan tersebut, tetapi tidak akan diminta untuk mengambil tindakan lebih lanjut. Semua izin file yang ada akan dipertahankan setelah migrasi terjadi.</p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Cara Memeriksa Kebocoran Kata Sandi dengan Google Chrome</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/cara-memeriksa-kebocoran-kata-sandi-dengan-google-chrome/"/>
+        <id>https://teknomid.online/cara-memeriksa-kebocoran-kata-sandi-dengan-google-chrome/</id>
+            <category term="WINDOWS-APPLIKASI"/>
+            <category term="TUTORIAL"/>
+            <category term="MacOS-APPLIKASI"/>
+            <category term="MOBILE-APPLIKASI"/>
+            <category term="LINUX-APPLIKASI"/>
+            <category term="GOOGLE"/>
+
+        <updated>2021-12-26T00:45:02+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/191/gg1-696x286.webp" alt="Cara Memeriksa Kebocoran Kata Sandi" />
+                     Pelanggaran data telah menjadi lebih umum bahkan dengan teknologi besar dan perusahaan internet. Satu-satunya&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/191/gg1-696x286.webp" alt="Cara Memeriksa Kebocoran Kata Sandi" />
+                <p><!-- wp:heading {"level":3} --></p>
+<h3>Cara Memeriksa Kebocoran Kata Sandi dengan Google Chrome</h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Pelanggaran data telah menjadi lebih umum bahkan dengan teknologi besar dan perusahaan internet. Satu-satunya pilihan bagi pengguna adalah memiliki kata sandi yang kuat dan sering mengubahnya. Ini akan membantu melindungi akun online Anda dan mengamankan data. Sebelumnya Anda harus mendapatkan informasi pelanggaran data dan kemudian mengubah kata sandi untuk itu. Namun, saat ini browser menjadi pintar dan Anda dapat memverifikasi apakah kata sandi Anda bocor dalam pelanggaran data tepat di dalam browser. Pada artikel ini, kami akan menjelaskan cara memeriksa kebocoran kata sandi Anda dengan browser Chrome.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":4} --></p>
+<h4>Keamanan Kata Sandi di Pengelola Kata Sandi Chrome</h4>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Google Chrome menawarkan pengelola kata sandi yang kuat untuk menyimpan semua kata sandi Anda dan menjaganya tetap aman. Anda dapat masuk ke akun Google Anda dan menyinkronkan kata sandi di semua perangkat Anda. Versi Chrome terbaru menawarkan opsi di pengelola kata sandi untuk memeriksa apakah kata sandi Anda disusupi dalam kebocoran data sebelumnya.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:list --></p>
+<ul>
+<li>Anda dapat menemukan kata sandi yang lemah dan mengubahnya dengan kata sandi yang kuat.</li>
+<li>Chrome akan mengirimkan pemberitahuan saat mendeteksi kata sandi yang bocor di kata sandi Anda yang tersimpan.</li>
+<li>Chrome akan memeriksa kebocoran kombinasi nama pengguna dan kata sandi dalam pelanggaran data apa pun dan menampilkan peringatan di bagian kata sandi browser.</li>
+<li>Google tidak akan melihat sandi yang Anda simpan dari browser Chrome.</li>
+</ul>
+<p><!-- /wp:list --></p>
+<p><!-- wp:heading {"level":4} --></p>
+<h4>Prasyarat untuk Memeriksa Kebocoran Kata Sandi di Chrome</h4>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Untuk memeriksa fitur kebocoran kata sandi di Chrome, Anda harus mengaktifkan pengaturan berikut:</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:list --></p>
+<ul>
+<li>Masuk ke akun Google – Anda harus masuk ke akun Google Anda untuk mendapatkan detail kata sandi yang disusupi dalam pelanggaran data. Ini tidak akan tersedia jika Anda menggunakan browser tanpa masuk. Namun, Anda masih bisa mendapatkan detail kata sandi yang lemah bahkan tanpa masuk ke akun Anda.</li>
+<li>Tawarkan untuk menyimpan kata sandi – ini memungkinkan Chrome untuk menanyakan apakah akan menyimpan kata sandi Anda di pengelola kata sandi bawaan.</li>
+<li>Penjelajahan aman – Anda harus mengaktifkan penjelajahan aman untuk melihat peringatan kata sandi yang bocor dalam pelanggaran data.</li>
+<li>Mendapatkan pemberitahuan – Anda harus masuk untuk mendapatkan pemberitahuan tentang kebocoran kata sandi. Jika tidak, Anda dapat melihat detailnya di Chrome.</li>
+</ul>
+<p><!-- /wp:list --></p>
+<p><!-- wp:heading {"level":4} --></p>
+<h4>Aktifkan Penjelajahan Aman di Chrome</h4>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:list --></p>
+<ul>
+<li>Ikuti petunjuk di bawah ini untuk mengaktifkan opsi Penjelajahan Aman di Google Chrome:</li>
+</ul>
+<p><!-- /wp:list --></p>
+<p><!-- wp:list --></p>
+<ul>
+<li>Luncurkan Google Chrome dan klik ikon tiga titik vertikal yang muncul di sudut kanan atas browser. Pilih opsi "Pengaturan" dari menu yang muncul.</li>
+</ul>
+<p><!-- /wp:list --></p>
+<p><!-- wp:list --></p>
+<ul>
+<li>Buka bagian "Privasi dan keamanan" dan aktifkan opsi "Perlindungan yang ditingkatkan" di bawah bagian "Penjelajahan Aman".</li>
+</ul>
+<p><!-- /wp:list --></p>
+<p><!-- wp:list --></p>
+<ul>
+<li>Aktifkan Penjelajahan Aman di Chrome Aktifkan Penjelajahan Aman di Chrome Anda dapat mengklik opsi "Perlindungan yang ditingkatkan" untuk melihatnya menawarkan tingkat keamanan tertinggi untuk aktivitas penelusuran Anda dan memperingatkan Anda jika kata sandi terekspos dalam pelanggaran data.</li>
+</ul>
+<p><!-- /wp:list --></p>
+<p><!-- wp:image {"id":4262,"sizeSlug":"large","linkDestination":"none","className":"is-style-default"} --></p>
+<figure class="wp-block-image size-large is-style-default"><figure class="wp-image-4262"><img loading="lazy"  src="https://teknomid.online/media/posts/191/gg1-1024x420.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/191/responsive/gg1-1024x420-xs.webp 300w ,https://teknomid.online/media/posts/191/responsive/gg1-1024x420-sm.webp 480w ,https://teknomid.online/media/posts/191/responsive/gg1-1024x420-md.webp 768w ,https://teknomid.online/media/posts/191/responsive/gg1-1024x420-lg.webp 1024w ,https://teknomid.online/media/posts/191/responsive/gg1-1024x420-xl.webp 1360w ,https://teknomid.online/media/posts/191/responsive/gg1-1024x420-2xl.webp 1600w"  alt=""></figure>
+<figcaption>Aktifkan Penjelajahan Aman di Chrome</figcaption>
+</figure>
+<p><!-- /wp:image --></p>
+<p><!-- wp:heading {"level":4} --></p>
+<h4>Periksa Kebocoran Kata Sandi di Chrome</h4>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Saat Anda berada di halaman pengaturan Chrome, buka bagian "IsiOtomatis" dan klik opsi "Kata Sandi".</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4263,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<figure class="wp-block-image size-full is-style-default"><figure class="wp-image-4263"><img loading="lazy"  src="https://teknomid.online/media/posts/191/gg2.png" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/191/responsive/gg2-xs.png 300w ,https://teknomid.online/media/posts/191/responsive/gg2-sm.png 480w ,https://teknomid.online/media/posts/191/responsive/gg2-md.png 768w ,https://teknomid.online/media/posts/191/responsive/gg2-lg.png 1024w ,https://teknomid.online/media/posts/191/responsive/gg2-xl.png 1360w ,https://teknomid.online/media/posts/191/responsive/gg2-2xl.png 1600w"  alt=""></figure>
+<figcaption>Halaman Pengaturan Kata Sandi Chrome</figcaption>
+</figure>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Ini akan membuka pengelola kata sandi Chrome tempat Anda dapat melihat semua kata sandi yang tersimpan bersama dengan URL situs web dan nama pengguna. Anda akan menemukan beberapa opsi lain di halaman dan pastikan opsi pertama "Tawarkan untuk menyimpan kata sandi" diaktifkan. Ini adalah opsi yang memungkinkan Chrome menyimpan kata sandi Anda dan menonaktifkan ini akan menghentikan Chrome dari meminta Anda untuk menyimpan kata sandi di Chrome. Namun, semua kata sandi yang disimpan sebelumnya akan dipertahankan dan Anda dapat terus menggunakan bahkan setelah menonaktifkan opsi ini.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Klik pada opsi "Periksa kata sandi" yang mengatakan, "Jaga kata sandi Anda aman dari pelanggaran data dan masalah keamanan lainnya".</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4264,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<figure class="wp-block-image size-full is-style-default"><figure class="wp-image-4264"><img loading="lazy"  src="https://teknomid.online/media/posts/191/gg3.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/191/responsive/gg3-xs.webp 300w ,https://teknomid.online/media/posts/191/responsive/gg3-sm.webp 480w ,https://teknomid.online/media/posts/191/responsive/gg3-md.webp 768w ,https://teknomid.online/media/posts/191/responsive/gg3-lg.webp 1024w ,https://teknomid.online/media/posts/191/responsive/gg3-xl.webp 1360w ,https://teknomid.online/media/posts/191/responsive/gg3-2xl.webp 1600w"  alt=""></figure>
+<figcaption>Periksa Kata Sandi untuk Kebocoran dalam Pelanggaran Data</figcaption>
+</figure>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Di sini, Anda akan melihat daftar kata sandi yang disusupi dan lemah yang telah Anda simpan di Chrome. Seperti yang disebutkan, Anda harus menyinkronkan kata sandi Chrome Anda dengan akun Google Untuk melihat detail "Kata sandi yang disusupi".</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4265,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<figure class="wp-block-image size-full is-style-default"><figure class="wp-image-4265"><img loading="lazy"  src="https://teknomid.online/media/posts/191/gg4.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/191/responsive/gg4-xs.webp 300w ,https://teknomid.online/media/posts/191/responsive/gg4-sm.webp 480w ,https://teknomid.online/media/posts/191/responsive/gg4-md.webp 768w ,https://teknomid.online/media/posts/191/responsive/gg4-lg.webp 1024w ,https://teknomid.online/media/posts/191/responsive/gg4-xl.webp 1360w ,https://teknomid.online/media/posts/191/responsive/gg4-2xl.webp 1600w"  alt=""></figure>
+<figcaption>Periksa Kata Sandi yang Lemah dan Disusupi di Chrome</figcaption>
+</figure>
+<p><!-- /wp:image --></p>
+<p><!-- wp:heading {"level":4} --></p>
+<h4>Mengubah Kata Sandi yang Disusupi dan Lemah</h4>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Untuk setiap kata sandi yang disusupi atau lemah, Anda dapat menemukan beberapa opsi untuk memperbarui kata sandi.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":4} --></p>
+<h4>Perbarui Kata Sandi di Situs Web</h4>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Cara mudahnya adalah dengan mengklik tombol "Ubah kata sandi" yang ditampilkan pada item yang disusupi di Chrome. Ini akan membuka situs di tab baru di mana Anda dapat masuk dan mengubah kata sandi Anda.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4266,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<figure class="wp-block-image size-full is-style-default"><figure class="wp-image-4266"><img loading="lazy"  src="https://teknomid.online/media/posts/191/gg5.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/191/responsive/gg5-xs.webp 300w ,https://teknomid.online/media/posts/191/responsive/gg5-sm.webp 480w ,https://teknomid.online/media/posts/191/responsive/gg5-md.webp 768w ,https://teknomid.online/media/posts/191/responsive/gg5-lg.webp 1024w ,https://teknomid.online/media/posts/191/responsive/gg5-xl.webp 1360w ,https://teknomid.online/media/posts/191/responsive/gg5-2xl.webp 1600w"  alt=""></figure>
+<figcaption>Ubah Kata Sandi di Situs</figcaption>
+</figure>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Saat Anda mengubah kata sandi, Chrome akan meminta Anda untuk memperbarui kata sandi yang disimpan. Klik tombol “Perbarui Kata Sandi” untuk mengganti kata sandi lama dengan kata sandi baru Anda di pengelola kata sandi Chrome. Ingat ini hanya berfungsi jika Anda telah mengaktifkan pengaturan "Tawarkan untuk menyimpan kata sandi".</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4267,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<figure class="wp-block-image size-full is-style-default"><figure class="wp-image-4267"><img loading="lazy"  src="https://teknomid.online/media/posts/191/gg6.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/191/responsive/gg6-xs.webp 300w ,https://teknomid.online/media/posts/191/responsive/gg6-sm.webp 480w ,https://teknomid.online/media/posts/191/responsive/gg6-md.webp 768w ,https://teknomid.online/media/posts/191/responsive/gg6-lg.webp 1024w ,https://teknomid.online/media/posts/191/responsive/gg6-xl.webp 1360w ,https://teknomid.online/media/posts/191/responsive/gg6-2xl.webp 1600w"  alt=""></figure>
+<figcaption>Perbarui Prompt Kata Sandi di Chrome</figcaption>
+</figure>
+<p><!-- /wp:image --></p>
+<p><!-- wp:heading {"level":4} --></p>
+<h4>Edit Kata Sandi Langsung di Chrome</h4>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Jika Anda telah mengubah kata sandi di perangkat lain atau di browser lain, Anda dapat langsung mengedit kata sandi di Chrome. Anda dapat menemukan ikon tiga titik vertikal untuk setiap item di bagian kata sandi yang disusupi. Klik ikon itu dan Anda akan menemukan opsi untuk menampilkan, mengedit, dan menghapus kata sandi.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":4268,"sizeSlug":"full","linkDestination":"none","className":"is-style-default"} --></p>
+<figure class="wp-block-image size-full is-style-default"><figure class="wp-image-4268"><img loading="lazy"  src="https://teknomid.online/media/posts/191/gg7.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/191/responsive/gg7-xs.webp 300w ,https://teknomid.online/media/posts/191/responsive/gg7-sm.webp 480w ,https://teknomid.online/media/posts/191/responsive/gg7-md.webp 768w ,https://teknomid.online/media/posts/191/responsive/gg7-lg.webp 1024w ,https://teknomid.online/media/posts/191/responsive/gg7-xl.webp 1360w ,https://teknomid.online/media/posts/191/responsive/gg7-2xl.webp 1600w"  alt=""></figure>
+<figcaption>Sunting Kata Sandi Lemah</figcaption>
+</figure>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Klik opsi "Edit kata sandi" dan berikan kata sandi baru Anda di jendela sembul. Simpan perubahan Anda untuk memperbarui kata sandi yang disimpan dengan kata sandi baru di Chrome. Setelah memperbarui kata sandi Anda, Anda dapat mengklik tombol "Periksa lagi" untuk memeriksa ulang dan mendapatkan detail yang diperbarui. Terkadang, Chrome juga akan menampilkan tautan "Sudah mengubah kata sandi ini?" yang dapat Anda klik dan perbarui kata sandi Anda.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":4} --></p>
+<h4>Poin yang perlu diperhatikan:</h4>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:list --></p>
+<ul>
+<li>Tidak seperti Microsoft Edge, Chrome tidak akan menyarankan kata sandi yang kuat. Oleh karena itu, sebaiknya gunakan alat pembuat kata sandi yang kuat untuk membuat kata sandi Anda terlebih dahulu atau bisa generate password disini:</li>
+<li><a href="https://passwordsgenerator.net/" target="_blank" rel="noreferrer noopener">StrongPasswordGenerator.</a></li>
+<li>Untuk mengedit atau melihat kata sandi di Chrome, Anda harus memberikan kata sandi administrator komputer Anda. Chrome akan meminta untuk memasukkan kata sandi admin beberapa kali untuk alasan keamanan.</li>
+<li>Siapa pun yang memiliki sandi admin komputer Anda dapat melihat dan mengekspor semua sandi yang disimpan di Chrome. Oleh karena itu, hindari menggunakan komputer umum untuk menyimpan kata sandi Anda.</li>
+</ul>
+<p><!-- /wp:list --></p>
+<p><!-- wp:paragraph --></p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Perbandingan Windows dan MacOS</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/perbandingan-windows-dan-macos/"/>
+        <id>https://teknomid.online/perbandingan-windows-dan-macos/</id>
+            <category term="TECH &amp;amp; GADGETS"/>
+            <category term="MacOS"/>
+            <category term="LAPTOP"/>
+
+        <updated>2021-12-26T00:57:04+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/189/macos-2xl-696x298.webp" alt="Perbandingan Windows dan MacOS" />
+                     Saat sobat TeknomID berencana membeli Device Laptop ataupun Komputer dengan OS Micrososft, Anda mendapatkan&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/189/macos-2xl-696x298.webp" alt="Perbandingan Windows dan MacOS" />
+                <p><!-- wp:heading --></p>
+<h2>Perbandingan Windows dan MacOS, dibawah ini kami coba uraikan satu per satu  dari segi harga dan fungsi.</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3>1. Lebih hemat</h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Saat sobat TeknomID berencana membeli Device Laptop ataupun Komputer dengan OS Micrososft, Anda mendapatkan lebih banyak keuntungan dalam hal perangkat keras jika dibandingkan dengan Mac dengan Operating system Machintoshnya yang terbilang stabil serta hemat batere.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Selain itu ada banyak varian merek / brand yang juga saling berkompetisi, sehingga membuat harga jadi lebih murah, sehingga kita sebagai end user dapat diuntungkan dalam hal ini.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Macbook, di sisi lain, memiliki harga yang hampir universal, jadi Anda cenderung tidak mendapatkan penawaran yang bagus.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3>2. Lebih baik untuk Gamer</h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Berdasarkan data statistik hampir 90 persen industri gaming masih di pegang oleh ekosistem Windows yang mana ada banyak sekali variasi game yang dapat di mainkan oleh end user dibandingkan dengan Mac.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p><em>Baca Juga: <a href="https://teknomid.com/xiaomi-redmibook15-launching-diindonesia/" target="_blank" rel="noreferrer noopener">Laptop Xiaomi RedmiBook 15</a></em></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3 id="h-3-dapat-di-kustomisasi">3. Dapat di Kustomisasi</h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>RAM, SSD ketika anda kekurangan dengan hal ini, anda dapat dengan mudah menambah komponen ini ketika spesifikasi yang anda miliki saat ini masih kurang, tetapi di Mac anda tidak bisa dengan mudah melakukan hal ini, jika pun bisa anda harus membayar cukup mahal.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3 id="h-4-support-lebih-murah">4. Support lebih murah</h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Ketika Windows laptop anda rusak, anda dapat membawanya ke toko service komputer atau bahkan anda dapat memperbaikinya sendiri. Beda halnya dengan Mac, anda harus membawanya ke service center Apple.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3 id="h-5-aplikasi-gratis">5. Aplikasi gratis</h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Berdasarkan data statistik hampir 88 persen pengguna komputer masih di dominasi oleh Windows, sehingga jumlah software yang dimiliki juga sangat banyak variasinya yang dapat anda install.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3>6. Merek Laptop Windows lebih bervariasi</h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Ketika anda ingin membeli sebuah laptop Windows, maka anda akan bingung memilih laptop mana yang ingin anda beli karena begitu banyaknya varian / merek yang berada di pasaran.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Asus, Lenovo, HP, Dell, Infinix, Realme, Axioo, Zyrex. Tentunya para brand laptop ini juga menawaran beragam variasi spesifikasi mulai dari spesifikasi yang rendah sampai spesifikasi yang sangat tinggi.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sampai disini dulu pembahasan Perbandingan Windows dan MacOS.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p><em>Baca Juga: <a href="https://teknomid.com/perbandingan-device-laptop-os-windows-dan-machintos/#INTERNAL_LINK#/post/null" target="_blank" rel="noreferrer noopener">Download Windows 11</a></em></p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Xiaomi RedmiBook 15&quot;</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/xiaomi-redmibook-15/"/>
+        <id>https://teknomid.online/xiaomi-redmibook-15/</id>
+            <category term="TECH &amp;amp; GADGETS"/>
+            <category term="LAPTOP"/>
+
+        <updated>2021-12-26T01:02:10+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/188/redmibook-15-01-2-696x382.webp" alt="Xiaomi RedmiBook 15&quot;" />
+                     Xiaomi RedmiBook 15 resmi launching di Indonesia pada Juli lalu. Meskipun Tampilan Layar relatif&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/188/redmibook-15-01-2-696x382.webp" alt="Xiaomi RedmiBook 15&quot;" />
+                <p><!-- wp:paragraph --></p>
+<p><a href="http://www.mi.co.id/">Xiaomi</a>  RedmiBook 15 resmi launching di Indonesia pada Juli lalu.<br>Meskipun Tampilan Layar relatif lebar, perangkat ini dirancang agar simpel serta mudah dibawa kemana saja, dengan ketebalan 19,9mm dan bobot 1,8 kg.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Layar Xiaomi RedmiBook 15 sendiri berdiagonal 15,6 inch dengan resolusi Full HD Plus (1.920 x 1.080 piksel), tingkat kecerahan lebih dari 100 nit, dan turut dibekali fitur anti-glare display dan DC Dimming alias flicker-free.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Xiaomi RedmiBook 15 dibekali dengan webcam beresolusi 720p di bingkai atas layar laptop. Terdapat pula mikrofon ganda serta speaker 2W+2W dengan DTS Audio.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":5} --></p>
+<h5 id="h-baca-juga-iphone-13-resmi-di-indonesia"><em>Baca Juga : <a href="https://teknomid.com/iphone-13-akhirnya-sudah-dapat-izin-resmi-di-indonesia/">iPhone 13 Resmi di Indonesia</a></em></h5>
+<figure class="post__image post__image--center" ><img loading="lazy" src="https://teknomid.online/media/posts/188/redmibook-15-1024x738-1.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/188/responsive/redmibook-15-1024x738-1-xs.webp 300w ,https://teknomid.online/media/posts/188/responsive/redmibook-15-1024x738-1-sm.webp 480w ,https://teknomid.online/media/posts/188/responsive/redmibook-15-1024x738-1-md.webp 768w ,https://teknomid.online/media/posts/188/responsive/redmibook-15-1024x738-1-lg.webp 1024w ,https://teknomid.online/media/posts/188/responsive/redmibook-15-1024x738-1-xl.webp 1360w ,https://teknomid.online/media/posts/188/responsive/redmibook-15-1024x738-1-2xl.webp 1600w"  alt="Redmibook 15" width="730" height="526">
+<figcaption >
+<figure class="wp-block-image size-full td-caption-align-center">
+<figcaption><em><span style="color: #e67e23;">Redmibook 15</span></em></figcaption>
+</figure>
+</figcaption>
+</figure>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:image {"id":3602,"sizeSlug":"full","linkDestination":"none","className":"td-caption-align-center","ampLightbox":true} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Prosesor itu dipasangkan dengan <strong>RAM DDR4 3200 GHz 8 GB</strong> dan Disk-Storage di bekali dengan <strong>SSD 256 GB</strong>.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Baterai 46Wh di laptop ini diklaim mampu bertahan selama 10 jam. Sementara, Teknologi yang di bawa Xiaomi RedmiBook 15  ini adalah FastCharging, dimana waktu pengisiannya dengan charger 65 watt hanya 33 menit untuk mencapai kapasitas 50 persen, dengan catatan laptop dalam keadaan dimatikan.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>RedmiBook 15 tersedia dalam varian warna <strong>Dark Gray</strong> dan sudah termasuk sistem operasi Windows 10 Home dan Upgrade ke Windows 11 akan dikirimkan pada akhir tahun 2021 hingga awal tahun 2022.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Untuk lebih lengkapnya, berikut ini spesifikasi Teknologi Hardware</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:table {"textColor":"vivid-cyan-blue","className":"is-style-regular"} --></p>
+<figure class="wp-block-table is-style-regular">
+<table class="has-vivid-cyan-blue-color has-text-color">
+<tbody>
+<tr>
+<td>Spesifikasi</td>
+<td><strong><a href="https://www.mi.co.id/id/product/redmibook-15/">RedmiBook 15</a></strong></td>
+</tr>
+<tr>
+<td>Panel LCD</td>
+<td>LCD 15,6 inci, resolusi Full HD (1.920 x 1.080 piksel), tingkat kecerahan lebih dari 100 nit, rasio kontras 500:1, kerapatan 141 ppi</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>363.8 x 243.5 x 19.9 mm 1.8 kg</td>
+</tr>
+<tr>
+<td>RAM</td>
+<td>DDR4 8 GB 3200MHz</td>
+</tr>
+<tr>
+<td>GPU</td>
+<td><a href="https://ark.intel.com/content/www/id/id/ark/products/208652/intel-core-i31115g4-processor-6m-cache-up-to-4-10-ghz.html">Intel UHD Graphics (integrated)</a></td>
+</tr>
+<tr>
+<td>Disk</td>
+<td>SSD 256 GB</td>
+</tr>
+<tr>
+<td>Cam</td>
+<td>720p</td>
+</tr>
+<tr>
+<td>Baterai</td>
+<td>46Wh</td>
+</tr>
+<tr>
+<td>Keyboard</td>
+<td>Full-size, key travel 1,5mm</td>
+</tr>
+<tr>
+<td>Touchpad</td>
+<td>PTP 126mm × 82,6mm</td>
+</tr>
+<tr>
+<td>Speaker</td>
+<td>Stereo 2W + 2W <a href="https://en.wikipedia.org/wiki/DTS_(sound_system_company)">Audio DTS</a></td>
+</tr>
+<tr>
+<td>Port / Slot</td>
+<td>HDMI 1.4 x 1 <br>USB 3.2 Gen1 x 2, <br>USB 2.0 x 1 <br>Kunci Kensington: Ready<br>Ethernet (Lan): RJ45 <br>Output Audio Digital Optik: Ready<br>Jack headphone 3.5 mm x 1 <br>Slot SD: SD 3.0</td>
+</tr>
+<tr>
+<td>Konektivitas</td>
+<td>Bluetooth 5.0 Wi-Fi 5 2.4Ghz/5GHz</td>
+</tr>
+</tbody>
+</table>
+<figcaption><em>Tabel Spesifikasi RedmiBook 15</em></figcaption>
+</figure>
+<p><!-- /wp:table --></p>
+<p><!-- wp:paragraph --></p>
+<p><em>Baca Juga : <a href="https://teknomid.com/mengatasi-whatsapp-yang-sudah-kadaluarsa">Mengatasi Whatsapp Yang Kadaluarsa</a></em></p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Mengatasi Whatsapp yang sudah Kadaluarsa</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/mengatasi-whatsapp-yang-sudah-kadaluarsa/"/>
+        <id>https://teknomid.online/mengatasi-whatsapp-yang-sudah-kadaluarsa/</id>
+            <category term="WINDOWS-APPLIKASI"/>
+            <category term="MacOS-APPLIKASI"/>
+            <category term="MOBILE-APPLIKASI"/>
+            <category term="APPLIKASI"/>
+
+        <updated>2021-12-26T01:10:05+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/187/whatsapp-app.webp" alt="Mengatasi Whatsapp yang sudah Kadaluarsa" />
+                     Mengatasi Whatsapp yang sudah Kadaluarsa – Whatsapp merupakan aplikasi messaging yang digunakan oleh hampir semua&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/187/whatsapp-app.webp" alt="Mengatasi Whatsapp yang sudah Kadaluarsa" />
+                <p><!-- wp:paragraph --></p>
+<p><strong>Mengatasi Whatsapp yang sudah Kadaluarsa</strong> – Whatsapp merupakan aplikasi messaging yang digunakan oleh hampir semua pengguna smartphone, dan tentunya ada jadwal update aplikasi tersebut.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Pembaruan ini dirancang untuk meningkatkan kinerja.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Bagi yang jarang update Whatsapp pasti pernah melihat tampilan Whatsapp yang bertuliskan Whatsapp telah expired.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Jika Anda menghadapi situasi seperti itu, Anda tidak perlu panik. Whatsapp memang mengupdate aplikasinya secara berkala.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Baca juga: <a href="https://teknomid.com/applikasi-design-gratis/">Aplikasi Desain Gratis PowerFull</a></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Dengan update ini, Whatsapp juga mewajibkan penggunanya untuk mengupdate aplikasi Wahtsapp yang sudah terpasang di perangkat pengguna.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Untuk mengatasi Whatsapp yang kadaluarsa, Anda hanya perlu memperbarui atau memperbarui versi Whatsapp di perangkat Anda ke versi yang lebih baru.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Pada artikel kali ini saya akan membahas 3 cara yang bisa digunakan untuk mengupdate Whatsapp expired.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Cara termudah, saya sangat menyarankan untuk menangani Whatsapp yang kedaluwarsa dengan memperbarui dari Google Play Store.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Seperti yang kita ketahui bersama, setiap ada update aplikasi, biasanya akan ada update di Google Play Store, tak terkecuali aplikasi Whatsapp.</p>
+<figure class="post__image post__image--center"><img loading="lazy"  src="https://teknomid.online/media/posts/187/wa01.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/187/responsive/wa01-xs.webp 300w ,https://teknomid.online/media/posts/187/responsive/wa01-sm.webp 480w ,https://teknomid.online/media/posts/187/responsive/wa01-md.webp 768w ,https://teknomid.online/media/posts/187/responsive/wa01-lg.webp 1024w ,https://teknomid.online/media/posts/187/responsive/wa01-xl.webp 1360w ,https://teknomid.online/media/posts/187/responsive/wa01-2xl.webp 1600w"  alt="" width="798" height="550"></figure>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":3005,"sizeSlug":"full","linkDestination":"none"} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Untuk memperbarui Whatsapp, silakan praktikkan langkah-langkah berikut:</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:list --></p>
+<ul>
+<li>Buka aplikasi Google Play Store.</li>
+<li>Ketuk bilah pencarian dan masukkan Whatsapp.</li>
+<li>Selanjutnya, klik tombol perbarui untuk memperbarui Whatsapp.</li>
+<li>Tunggu proses download dan install Whatsapp versi terbaru sampai selesai.</li>
+<li>Buka kembali aplikasi Whatsapp Anda. Lengkap.</li>
+</ul>
+<p><!-- /wp:list --></p>
+<p><!-- wp:heading {"fontSize":"large"} --></p>
+<h2 id="h-menggunakan-aplikasi-pihak-ketiga" class="has-large-font-size">Menggunakan Aplikasi Pihak Ketiga</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Beberapa merek HP telah menyematkan aplikasi pihak ketiga yang dapat digunakan untuk mengunduh aplikasi seperti Google Play Store.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Misal handphone Mi yang saya pakai ada aplikasi GetApps, bagi yang tidak bisa update Whatsapp expired dari Google Play Store bisa menggunakan semacam GetApps.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Aplikasi seperti GetApps mungkin memiliki nama aplikasi yang berbeda atau mungkin tidak ada, tergantung pada merek dan seri ponsel yang Anda gunakan.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:list {"ordered":true} --></p>
+<ol>
+<li>Buka aplikasi GetApps.</li>
+<li>Masukkan Whatsapp di kolom pencarian.</li>
+<li>Ketuk aplikasi Whatsapp.</li>
+<li>Selanjutnya, klik Perbarui.</li>
+<li>Tunggu Whatsapp untuk mengunduh dan menginstal di ponsel Anda.</li>
+</ol>
+<p><!-- /wp:list --></p>
+<p><!-- wp:heading --></p>
+<h2 id="h-cara-memperbarui-whatsapp-yang-kadaluarsa-dari-browser">Cara Memperbarui Whatsapp yang Kadaluarsa dari Browser</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Pada prinsipnya cara update <a href="https://en.wikipedia.org/wiki/WhatsApp">Whatsapp</a> dari browser hampir sama dengan kedua cara diatas, bedanya disini kita membuka website dan mendownload Whatsapp versi terbaru secara manual.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Anda bisa menggunakan beberapa situs untuk mendownload Whatsapp, seperti Jalantikus.com, apkpure.com dan lain-lain.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Disini saya coba praktekkan download dari apkpure.com, dan hasilnya saya bisa install aplikasi Whatsapp yang saya download dari pure apk tanpa harus uninstall aplikasi Whatsapp yang saya download dari Google Play store.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Dengan cara ini, aplikasi Whatsapp dari APKPure sama dengan yang diunduh dari Google Play store.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Untuk mengunduh dari app APKPure, Anda tidak perlu mendaftar atau masuk terlebih dahulu.</p>
+<figure class="post__image post__image--center"><img loading="lazy"  src="https://teknomid.online/media/posts/187/apkfure.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/187/responsive/apkfure-xs.webp 300w ,https://teknomid.online/media/posts/187/responsive/apkfure-sm.webp 480w ,https://teknomid.online/media/posts/187/responsive/apkfure-md.webp 768w ,https://teknomid.online/media/posts/187/responsive/apkfure-lg.webp 1024w ,https://teknomid.online/media/posts/187/responsive/apkfure-xl.webp 1360w ,https://teknomid.online/media/posts/187/responsive/apkfure-2xl.webp 1600w"  alt="" width="1024" height="425"></figure>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":3006,"sizeSlug":"full","linkDestination":"none"} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:list {"ordered":true} --></p>
+<ol>
+<li>Kunjungi situs apkpure.com.</li>
+<li>Selanjutnya, masukkan Whatsapp di kolom pencarian.</li>
+<li>Klik Whatsapp.</li>
+<li>Anda akan dibawa ke halaman unduh Whatsapp, lalu klik untuk mengunduh APK.</li>
+<li>Jika sudah selesai download, silahkan buka file APK yang baru saja anda download dan install aplikasi Whatsapp.</li>
+<li>Jangan lupa aktifkan permission install aplikasi pihak ketiga dengan masuk ke menu Setting-Security-Allow installation from third party.</li>
+<li>Tunggu hingga proses instalasi selesai.</li>
+</ol>
+<p><!-- /wp:list --></p>
+<p><!-- wp:heading --></p>
+<h2>Memperbarui Whatsapp Modded yang Kadaluarsa</h2>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Bagi para pengguna Whatsapp versi modifikasi tentunya tidak bisa mengupdate atau mengatasi Whatsapp dari Google Play Store karena versi modifikasinya berbeda dengan versi aslinya.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Untuk melakukan ini, Anda dapat menggunakan browser Anda untuk menemukan versi terbaru dari Whatsapp yang dimodifikasi yang Anda gunakan.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Karena sampai saat ini saya menggunakan Whatsapp versi resmi, saya sangat tidak mengetahui nama website yang menyediakan link untuk mendownload Whatsapp versi modifikasi.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Baca juga: <a href="https://blogyuk.com/kelebihan-telegram-yang-tak-kalah-canggih-dari-whatsapp.html">Kelebihan Telegram yang Tak Kalah Canggih dari WhatsApp</a></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Namun, dengan bantuan mesin pencari Google, Anda juga dapat menemukan situs yang menyediakan tautan unduhan untuk Whatsapp versi modifikasi terbaru.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Jika Anda tidak dapat menemukan Whatsapp versi modifikasi terbaru hingga tidak dapat menggunakan Whatsapp, satu-satunya cara adalah dengan mencopot pemasangan aplikasi Whatsapp yang dimodifikasi, lalu unduh Whatsapp versi resmi dari Google Play Store.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Seberapa mudah? Anda dapat memperbarui Whatsapp yang kedaluwarsa dengan sangat mudah.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Teman-teman yang masih bingung bisa meninggalkan pertanyaan di kolom komentar. semoga beruntung!<br><br>Sumber: <a href="https://blogyuk.com/mengatasi-whatsapp-kadaluarsa.html" target="_blank" rel="noreferrer noopener">BlogYuk</a></p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>iPhone 13 Akhirnya Sudah Dapat Izin Resmi di Indonesia</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/iphone-13-akhirnya-sudah-dapat-izin-resmi-di-indonesia/"/>
+        <id>https://teknomid.online/iphone-13-akhirnya-sudah-dapat-izin-resmi-di-indonesia/</id>
+            <category term="TECH &amp;amp; GADGETS"/>
+            <category term="HANDPHONE"/>
+
+        <updated>2021-12-26T01:13:26+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/186/Iphone-13.webp" alt="iPhone 13 Akhirnya Sudah Dapat Izin Resmi di Indonesia" />
+                     Teknomid - iPhone 13 resmi diperkenalkan Apple pada pertengahan September 2021 lalu. Pada perkenalan&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/186/Iphone-13.webp" alt="iPhone 13 Akhirnya Sudah Dapat Izin Resmi di Indonesia" />
+                <p><!-- wp:paragraph --></p>
+<p><a href="http://teknomid.com">Teknomid </a>- iPhone 13 resmi diperkenalkan Apple pada pertengahan September 2021 lalu. Pada perkenalan Apple saat peluncuran Iphone 13 resmi, Ada 4 tipe Iphone 13 yang sudah dirilis yaitu iPhone 13 Mini, iPhone 13, iPhone 13 Pro, dan iPhone 13 Pro Max</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Bahkan, iPhone 13 sudah mendapatkan izin edar dari pemerintah Indonesia. Sertifikat Tingkat Komponen Dalam Negeri (TKDN)<br>Terpantau di situs web TKDN Kemenperin.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Ada 4 model iPhone yang sudah mendapatkan sertifikat, yaitu ponsel dengan nomor model "A2628", "A2633", "A2638", dan "A2643". Secara berurutan, diyakini keempat nomor model tersebut sebagai iPhone 13 Mini, iPhone 13, iPhone 13 Pro, dan iPhone 13 Pro Max.</p>
+<figure class="post__image post__image--center" ><img loading="lazy" src="https://teknomid.online/media/posts/186/image-4.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/186/responsive/image-4-xs.webp 300w ,https://teknomid.online/media/posts/186/responsive/image-4-sm.webp 480w ,https://teknomid.online/media/posts/186/responsive/image-4-md.webp 768w ,https://teknomid.online/media/posts/186/responsive/image-4-lg.webp 1024w ,https://teknomid.online/media/posts/186/responsive/image-4-xl.webp 1360w ,https://teknomid.online/media/posts/186/responsive/image-4-2xl.webp 1600w"  alt="" width="624" height="285">
+<figcaption ><span style="color: #e67e23;"><em>Sumber: <a href="http://tkdn.kemenperin.go.id/sertifikat.php?id=xloqnKpgewO5PFifLwECYGvMZg3Az-RHHMfKq7D3Q28," style="color: #e67e23;">tkdn kemenperin</a></em></span></figcaption>
+</figure>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":735,"sizeSlug":"full","linkDestination":"none"} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Tujuan aturan ini dibuat adalah untuk mengurangi defisit perdagangan akibat banyaknya barang impor yang masuk ke Indonesia. Pasalnya, saat era 3G dulu, ponsel bebas diimpor masuk tanpa penyaring apa pun.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Meski sudah lolos uji sertifikasi TKDN, belum diketahui secara pasti kapan jajaran iPhone 13 tadi bakal resmi dijual di Indonesia beserta harga resmi nya.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Namun, apabila melihat penjualan iPhone 12 di Indonesia tahun lalu, iPhone 13 kemungkinan bakal dijual pada Desember 2021 ini, dua bulan setelah diluncurkan pada Oktober 2021.<br><br>Kendati demikian, hal itu belum pasti. Terlebih, iPhone 11 yang diluncurkan awal September 2019 saja masuk ke Indonesia tiga bulan setelahnya, yaitu pada awal Desember 2019. <br><br><br></p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Aplikasi Design Open Source di Linux dan Windows</title>
+        <author>
+            <name>Teknomid</name>
+        </author>
+        <link href="https://teknomid.online/aplikasi-design-di-linux-dan-windows-open-source/"/>
+        <id>https://teknomid.online/aplikasi-design-di-linux-dan-windows-open-source/</id>
+            <category term="WINDOWS-APPLIKASI"/>
+            <category term="WINDOWS"/>
+            <category term="LINUX-APPLIKASI"/>
+            <category term="LINUX"/>
+            <category term="APPLIKASI"/>
+
+        <updated>2021-12-26T01:19:56+07:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://teknomid.online/media/posts/178/desain17-10-2021.webp" alt="Aplikasi Design Open Source di Linux dan Windows" />
+                     Teknomid - Sekarang teman-teman tidak perlu lagi melakukan pembajakan atau membeli aplikasi berbayar dengan&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <img src="https://teknomid.online/media/posts/178/desain17-10-2021.webp" alt="Aplikasi Design Open Source di Linux dan Windows" />
+                <p><!-- wp:paragraph --></p>
+<p><a href="https://teknomid.com">Teknomid</a> - Sekarang teman-teman tidak perlu lagi melakukan pembajakan atau membeli aplikasi berbayar dengan harga yang mahal sebagai designer pemula. Bukan hanya itu bagi kalian pengguna linux maupun windows yang masih sering me-reboot mesin tempurnya hanya untuk mengakses aplikasi – aplikasi dari Adobe sebaiknya mulai mencoba menggunakan  Aplikasi Design di Linux yang Gratis dan Open Source berikut ini.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3 id="h-1-inkscape"><strong>1. Inkscape</strong></h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Inkscape merupakan sebuah perangkat lunak design pengolah gambar vektor di bawah lisensi GNU GPL yang bersifat <em>free,</em> <em>open source, </em>dan tentunya gratis untuk di gunakan tanpa biaya sepeserpun. <br><br>Ia dapat berjalan pada berbagai macam <em>platform </em>serta menggunakan format utama SVG untuk filenya dengan mengacu kepada standard dari W3C. Untuk saat ini pengguna Inkscape sudah sangat banyak sekali baik itu dari kalangan profesional maupun pengguna umum untuk kebutuhan design.</p>
+<figure class="post__image post__image--center" ><img loading="lazy" src="https://teknomid.online/media/posts/178/teknomid.com_-2-1024x542.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/178/responsive/teknomid.com_-2-1024x542-xs.webp 300w ,https://teknomid.online/media/posts/178/responsive/teknomid.com_-2-1024x542-sm.webp 480w ,https://teknomid.online/media/posts/178/responsive/teknomid.com_-2-1024x542-md.webp 768w ,https://teknomid.online/media/posts/178/responsive/teknomid.com_-2-1024x542-lg.webp 1024w ,https://teknomid.online/media/posts/178/responsive/teknomid.com_-2-1024x542-xl.webp 1360w ,https://teknomid.online/media/posts/178/responsive/teknomid.com_-2-1024x542-2xl.webp 1600w"  alt="" width="1024" height="542">
+<figcaption ><a href="https://inkscape.org/" data-type="URL" data-id="https://inkscape.org/" target="_blank" rel="noreferrer noopener">Inkscape 1.1</a></figcaption>
+</figure>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":495,"sizeSlug":"large","linkDestination":"none"} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Ketika tulisan ini di buat <a href="https://inkscape.org/">Inkscape </a>sudah mencapai rilisan dengan versi 1.1</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Secara umum <a href="https://inkscape.org/">Inkscape </a>sudah tersedia hampir di sebagian besar repositori dari berbagai macam Distro Linux dan mempunyai banyak komunitas juga tutorial yang tersebar di internet. <br><br>Pada Ubuntu kalian tinggal menginstalnya melalui Ubuntu Software Center atau melalui shell dengan mengetikan perintah "<strong>sudo apt install inkscape</strong>" <br><br>Atau bisa juga download applikasi standalone langsung dari website <a data-type="URL" data-id="https://media.inkscape.org/dl/resources/file/Inkscape-3bf5ae0-x86_64.AppImage" href="https://media.inkscape.org/dl/resources/file/Inkscape-3bf5ae0-x86_64.AppImage"><em>inkscape</em></a> file-size: 110 MB dan lakukan perintah berikut lewat terminal.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">chmod u+x Inkscape-3bf5ae0-x86_64.AppImage<br>sudo chown teknomid:teknomid Inkscape-3bf5ae0-x86_64.AppImage<br>sudo cp Inkscape-3bf5ae0-x86_64.AppImage /bin/inkscape<br>-<br>Masukkan Perintah di terminal : inkscape</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p><em>Sumber: <a rel="noreferrer noopener" href="https://inkscape.org/" target="_blank">https://inkscape.org/</a></em></p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:heading {"level":3} --></p>
+<h3 id="h-2-krita"><strong>2. Krita</strong></h3>
+<p><!-- /wp:heading --></p>
+<p><!-- wp:paragraph --></p>
+<p>Design Krita adalah sebuah pengolah gambar yang tidak kalah keren dengan Inkscape, namun aplikasi satu ini merupakan aplikasi pengolah gambar raster yang lebih berfokus kepada painting dan animasi. <br><br>Sama halnya dengan Inkscape, Krita juga bersifat <em>free</em> dan <em>open source </em>tentunya Krita juga bebas di gunakan tanpa di pungut biaya sepeserpun alias gratis. Krita sendiri mengusung Design antarmuka yang elegant dan mirip dengan aplikasi Illustrator dari Adobe.<br>Versi terbaru sekarang ini sudah update ke version Krita v4.4.8</p>
+<figure class="post__image post__image--center" ><img loading="lazy" src="https://teknomid.online/media/posts/178/krita.webp" sizes="(max-width: 48em) 100vw, 768px" srcset="https://teknomid.online/media/posts/178/responsive/krita-xs.webp 300w ,https://teknomid.online/media/posts/178/responsive/krita-sm.webp 480w ,https://teknomid.online/media/posts/178/responsive/krita-md.webp 768w ,https://teknomid.online/media/posts/178/responsive/krita-lg.webp 1024w ,https://teknomid.online/media/posts/178/responsive/krita-xl.webp 1360w ,https://teknomid.online/media/posts/178/responsive/krita-2xl.webp 1600w"  alt="" width="974" height="719">
+<figcaption ><span style="color: #e67e23;"><em>Krita v.4.4.8</em></span></figcaption>
+</figure>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:image {"id":496,"width":694,"height":507,"sizeSlug":"full","linkDestination":"none"} --></p>
+<p><!-- /wp:image --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sebagai salah satu pengolah gambar raster yang lebih fokus ke penggambaran daripada fungsi melakukan pengeditan Krita juga mempunyai nilai plus yaitu bisa di gunakan untuk membuat dan mengolah gambar vektor seperti halnya Illustrator. <br><br>Krita juga dapat berjalan di berbagai macam <em>platform. </em>Untuk menginstall Krita pada Ubuntu cukup melalui Ubuntu Software Center atau dengan menggunakan perintah sudo apt install krita dan Krita siap di gunakan.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:paragraph --></p>
+<p>Atau bisa juga download applikasi standalone langsung dari website <a data-type="URL" data-id="https://kde.cs.nctu.edu.tw/ftp/stable/krita/4.4.8/krita-4.4.8-x86_64.appimage" rel="noreferrer noopener" href="https://kde.cs.nctu.edu.tw/ftp/stable/krita/4.4.8/krita-4.4.8-x86_64.appimage" target="_blank"><em>krita</em></a> file-size: 225 MB dan lakukan perintah berikut lewat terminal.</p>
+<p><!-- /wp:paragraph --></p>
+<p><!-- wp:html --></p>
+<div style="background-color: #232323; border-left: 5px solid #dd8500; border-radius: 10px; padding: 17px; text-align: left; color: #f7f7f7;">sudo chown teknomid:teknomid krita-4.4.8-x86_64.appimage<br>sudo cp krita-4.4.8-x86_64.appimage /bin/krita<br>-<br>Masukkan Perintah di terminal : krita</div>
+<p><!-- /wp:html --></p>
+<p><!-- wp:paragraph --></p>
+<p>Sumber: <em><a rel="noreferrer noopener" href="https://krita.org/" target="_blank">https://krita.org/</a></em></p>
+<p><!-- /wp:paragraph --></p>
+            ]]>
+        </content>
+    </entry>
+</feed>
